@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Revision</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>DSA Revision</h1>
+    </header>
+
+    <main>
+        <section class="difficulty-selection">
+            <h2>Select Difficulty</h2>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+                <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+                <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+                <button class="difficulty-btn" data-difficulty="mixed">Mixed</button>
+            </div>
+        </section>
+
+        <section class="flashcards">
+            <h2>Flashcards</h2>
+            <div class="flashcard">
+                <div class="flashcard-question">What is the time complexity of QuickSort?</div>
+                <button class="reveal-answer">Reveal Answer</button>
+                <div class="flashcard-answer hidden">Average case: O(n log n), Worst case: O(n^2)</div>
+            </div>
+        </section>
+
+        <section class="practice-problems">
+            <h2>Practice Problems</h2>
+            <div id="problems-container">
+                <!-- Problems will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <section class="notes">
+            <h2>Notes</h2>
+            <textarea id="notes-area" placeholder="Write your notes here..."></textarea>
+            <button id="save-notes">Save Notes</button>
+        </section>
+    </main>
+
+    <script src="popup.js"></script>
+</body>
+</html>

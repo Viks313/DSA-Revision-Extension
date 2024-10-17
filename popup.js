@@ -1,88 +1,93 @@
-// Global variables
-let currentQuestion = null;
-let dailyQuestions = [];
-let config = {
-    numQuestions: 3,
-    difficulty: 'all'
-};
+// Fetch problems from JSON file
+async function fetchProblems() {
+    const response = await fetch('data/problems.json');
+    const data = await response.json();
+    return data.problems;
+}
 
-// Load configuration and initialize the extension
-document.addEventListener('DOMContentLoaded', () => {
-    loadConfig();
-    initializeUI();
-    generateDailyQuestions();
-    displayQuestion();
-});
+// Filter problems by difficulty
+function filterProblemsByDifficulty(problems, difficulty) {
+    return difficulty === 'Mixed' 
+        ? problems 
+        : problems.filter(problem => problem.difficulty.toLowerCase() === difficulty.toLowerCase());
+}
 
-// Load saved configuration
-function loadConfig() {
-    chrome.storage.sync.get(['numQuestions', 'difficulty'], (result) => {
-        if (result.numQuestions) config.numQuestions = result.numQuestions;
-        if (result.difficulty) config.difficulty = result.difficulty;
-        document.getElementById('numQuestions').value = config.numQuestions;
-        document.getElementById('difficulty').value = config.difficulty;
+// Get random unique problems
+function getRandomUniqueProblems(problems, count) {
+    const shuffled = [...problems].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+}
+
+// Display problems
+function displayProblems(problems) {
+    const problemsContainer = document.getElementById('problems-container');
+    problemsContainer.innerHTML = '';
+    problems.forEach(problem => {
+        const problemElement = document.createElement('div');
+        problemElement.className = 'practice-problem';
+        problemElement.innerHTML = `
+            <h3>${problem.title}</h3>
+            <p>Difficulty: ${problem.difficulty}</p>
+            <a href="${problem.link}" target="_blank">Solve Problem</a>
+        `;
+        problemsContainer.appendChild(problemElement);
     });
 }
 
-// Initialize UI elements
-function initializeUI() {
-    document.getElementById('saveConfig').addEventListener('click', saveConfig);
-    document.getElementById('submitSolution').addEventListener('click', submitSolution);
-}
+// Keep track of previously displayed problems
+let previousProblems = new Set();
 
-// Save configuration
-function saveConfig() {
-    config.numQuestions = parseInt(document.getElementById('numQuestions').value);
-    config.difficulty = document.getElementById('difficulty').value;
-    chrome.storage.sync.set(config, () => {
-        console.log('Configuration saved');
-        generateDailyQuestions();
-        displayQuestion();
+// Handle difficulty button clicks
+function handleDifficultySelection() {
+    const difficultyButtons = document.querySelectorAll('.difficulty-buttons button');
+    difficultyButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+            const difficulty = button.textContent;
+            const allProblems = await fetchProblems();
+            const filteredProblems = filterProblemsByDifficulty(allProblems, difficulty);
+            
+            // Filter out previously displayed problems
+            const availableProblems = filteredProblems.filter(problem => !previousProblems.has(problem.title));
+            
+            // If we've shown all problems, reset the set
+            if (availableProblems.length < 3) {
+                previousProblems.clear();
+            }
+            
+            const selectedProblems = getRandomUniqueProblems(availableProblems.length >= 3 ? availableProblems : filteredProblems, 3);
+            
+            // Add newly selected problems to the set
+            selectedProblems.forEach(problem => previousProblems.add(problem.title));
+            
+            displayProblems(selectedProblems);
+        });
     });
 }
 
-// Generate daily questions based on configuration
-function generateDailyQuestions() {
-    dailyQuestions = getRandomQuestions(config.numQuestions, config.difficulty);
+// Save notes to Chrome storage
+function saveNotes() {
+    const notes = document.getElementById('notes-area').value;
+    chrome.storage.sync.set({ 'dsaRevisionNotes': notes }, function() {
+        console.log('Notes saved');
+    });
 }
 
-// Display a random question from the daily questions
-function displayQuestion() {
-    if (dailyQuestions.length > 0) {
-        currentQuestion = dailyQuestions[Math.floor(Math.random() * dailyQuestions.length)];
-        document.getElementById('questionText').textContent = currentQuestion.question;
-    } else {
-        document.getElementById('questionText').textContent = 'No questions available for today.';
-    }
+// Load notes from Chrome storage
+function loadNotes() {
+    chrome.storage.sync.get(['dsaRevisionNotes'], function(result) {
+        if (result.dsaRevisionNotes) {
+            document.getElementById('notes-area').value = result.dsaRevisionNotes;
+        }
+    });
 }
 
-// Submit solution
-function submitSolution() {
-    const userSolution = document.getElementById('solutionInput').value;
-    const result = validateSolution(currentQuestion, userSolution);
-    displayFeedback(result);
+// Initialize the application
+function init() {
+    handleDifficultySelection();
+    loadNotes();
+    document.getElementById('save-notes').addEventListener('click', saveNotes);
 }
 
-// Display feedback
-function displayFeedback(isCorrect) {
-    const feedbackElement = document.getElementById('feedback');
-    feedbackElement.textContent = isCorrect ? 'Correct!' : 'Incorrect. Try again.';
-    feedbackElement.className = isCorrect ? 'correct' : 'incorrect';
-}
+// Run the initialization when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', init);
 
-// Helper function to get random questions (to be implemented in questions.js)
-function getRandomQuestions(count, difficulty) {
-    // This function should be implemented in questions.js
-    // For now, we'll return a dummy question
-    return [{
-        question: 'What is the time complexity of quicksort in the average case?',
-        answer: 'O(n log n)'
-    }];
-}
-
-// Helper function to validate solution (to be implemented in tally.js)
-function validateSolution(question, userSolution) {
-    // This function should be implemented in tally.js
-    // For now, we'll do a simple string comparison
-    return userSolution.trim().toLowerCase() === question.answer.toLowerCase();
-}
